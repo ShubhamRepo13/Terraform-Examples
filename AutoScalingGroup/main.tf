@@ -47,7 +47,7 @@ resource "aws_launch_template" "ASG_Launch_Template" {
   user_data = base64encode(<<-EOF
 #!/bin/bash
 yum install -y httpd
-echo "Hello World" > /var/www/html/index.html
+echo "Hello World from $(hostname -f)" > /var/www/html/index.html
 systemctl start httpd
 systemctl enable httpd
 EOF
@@ -111,4 +111,67 @@ resource "aws_autoscaling_group" "example_asg" {
     value               = "example_asg_instance"
     propagate_at_launch = true
   }
+}
+
+resource "aws_alb" "example_alb" {
+  name                       = "example-alb"
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group.ASG_SG.id]
+  subnets                    = [data.aws_subnet.subnet_a.id, data.aws_subnet.subnet_b.id]
+  enable_deletion_protection = false
+  tags = {
+    Name = "example-alb"
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+
+}
+
+resource "aws_alb_target_group" "example_alb_tg" {
+  name     = "example-alb-tg"
+  port     = var.server_port
+  protocol = "HTTP"
+  vpc_id   = data.aws_vpc.default.id
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 5
+    unhealthy_threshold = 2
+    matcher             = "200"
+  }
+  tags = {
+    Name = "example-alb-tg"
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+
+}
+
+resource "aws_alb_listener" "example_alb_listener" {
+  load_balancer_arn = aws_alb.example_alb.arn
+  port              = var.server_port
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.example_alb_tg.arn
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+
+}
+
+resource "aws_autoscaling_attachment" "example_asg_attachment" {
+  autoscaling_group_name = aws_autoscaling_group.example_asg.name
+  lb_target_group_arn    = aws_alb_target_group.example_alb_tg.arn
+}
+
+output "alb_dns_name" {
+  description = "The DNS name of the ALB"
+  value       = aws_alb.example_alb.dns_name
 }
