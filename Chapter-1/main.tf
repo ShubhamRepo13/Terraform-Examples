@@ -7,7 +7,7 @@ resource "aws_instance" "Instance_creation" {
   instance_type               = var.instance_type
   vpc_security_group_ids      = ["${aws_security_group.Demo-sg.id}"]
   associate_public_ip_address = true
-  key_name                    = "${var.key_name}"
+  key_name                    = var.key_name
   user_data                   = <<-EOF
 #!/bin/bash
 yum install -y httpd
@@ -45,6 +45,4 @@ resource "aws_security_group" "Demo-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-output "instance_ip_addr" {
-  value = aws_instance.Instance_creation.public_ip
-}
+
