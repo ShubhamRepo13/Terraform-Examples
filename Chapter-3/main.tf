@@ -2,13 +2,14 @@ provider "aws" {
   region = "ap-south-1"
 }
 
+
 terraform {
   backend "s3" {
-    bucket = "shubham-chavhan-s3-bucket-terraform-state"
-    key = "global/s3/terraform.tfstate"
-    region = "ap-south-1"
+    bucket         = "shubham-chavhan-s3-bucket-terraform-state"
+    key            = "workspace/terraform.tfstate"
+    region         = "ap-south-1"
     dynamodb_table = "shubham-chavhan-terraform-locks"
-    encrypt = true
+    encrypt        = true
   }
 }
 
